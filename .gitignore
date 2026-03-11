@@ -22,5 +22,9 @@ dev/
 # Results file
 results.tsv
 
+# Checkpoints
+checkpoint*.pt
+*.ckpt
+
 # Logs
 *.log
