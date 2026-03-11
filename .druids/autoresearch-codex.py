@@ -67,6 +67,7 @@ told to stop or the budget runs out."""
 
 
 import json
+import shlex
 
 
 def _parse_metrics(output):
@@ -107,7 +108,7 @@ async def program(ctx, repo_full_name="autoresearch-bench/ar-codex-starter", **k
 
     researcher = await ctx.agent(
         "researcher",
-        model="codex",
+        model="gpt-5.4",
         system_prompt=SYSTEM_PROMPT,
         prompt="Begin. Read the repo, set up, establish baseline, then start experimenting.",
         git="write",
@@ -131,9 +132,9 @@ async def program(ctx, repo_full_name="autoresearch-bench/ar-codex-starter", **k
 
         # Auto-commit all changes
         await researcher.exec("cd /home/agent/repo && git add -A")
-        commit_msg = f"experiment {experiment_count}: {description}"
+        commit_msg = shlex.quote(f"experiment {experiment_count}: {description}")
         await researcher.exec(
-            f"cd /home/agent/repo && git diff --cached --quiet || git commit -m '{commit_msg}'",
+            f"cd /home/agent/repo && git diff --cached --quiet || git commit -m {commit_msg}",
         )
 
         # Run on Modal
@@ -167,11 +168,11 @@ async def program(ctx, repo_full_name="autoresearch-bench/ar-codex-starter", **k
 
         # Append to results.tsv
         tsv_line = f"{commit_hash}\t{bpb or 0.0:.6f}\t{vram_gb}\t{status}\t{description}"
-        await researcher.exec(f"echo '{tsv_line}' >> /home/agent/repo/results.tsv")
+        await researcher.exec(f"printf '%s\\n' {shlex.quote(tsv_line)} >> /home/agent/repo/results.tsv")
 
         # Auto keep/discard
         if status == "keep":
-            await researcher.exec("cd /home/agent/repo && git push")
+            await researcher.exec("cd /home/agent/repo && git push -u origin HEAD")
         elif status == "discard":
             await researcher.exec("cd /home/agent/repo && git reset --hard HEAD~1")
 

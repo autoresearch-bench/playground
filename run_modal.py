@@ -11,8 +11,8 @@ image = (
     modal.Image.debian_slim(python_version="3.10")
     .pip_install("torch", extra_index_url="https://download.pytorch.org/whl/cu128")
     .pip_install("pyarrow", "requests", "rustbpe", "tiktoken", "numpy")
-    .add_local_file("prepare.py", "/root/autoresearch/prepare.py", copy=True)
-    .add_local_file("train.py", "/root/autoresearch/train.py", copy=True)
+    .add_local_file("prepare.py", "/root/autoresearch/prepare.py")
+    .add_local_file("train.py", "/root/autoresearch/train.py")
 )
 
 
