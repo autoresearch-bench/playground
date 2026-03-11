@@ -2,6 +2,7 @@
 
 import json
 import shlex
+import traceback
 
 MODAL_ENV = "ar-cc-starter"
 
@@ -21,75 +22,60 @@ def _parse_metrics(output):
 
 async def program(ctx, **kwargs):
     working_dir = "/home/agent/repo"
-    best_bpb = float("inf")
 
     researcher = await ctx.agent(
         "researcher",
-        system_prompt="You are testing the experiment pipeline. Do exactly what the prompt says.",
-        prompt=(
-            "Test the run_experiment tool. Do these steps exactly:\n"
-            "1. Run `git checkout -b test/pipeline-check`\n"
-            "2. Call the `run_experiment` tool with description 'baseline test'\n"
-            "3. Report back exactly what the tool returned."
-        ),
+        system_prompt="You are testing the experiment pipeline. Call the run_experiment tool exactly once with description 'baseline test'. Report back exactly what it returns, verbatim.",
+        prompt="Call the run_experiment tool now with description 'baseline test'. Copy its entire return value into your response.",
         git="write",
         working_directory=working_dir,
     )
 
     @researcher.on("run_experiment")
     async def run_experiment(description: str = ""):
-        """Run train.py on Modal and return results."""
-        nonlocal best_bpb
+        """Run train.py on a Modal H100 and return results. Call this with a short description of the experiment."""
+        try:
+            # Step 1: verify exec works at all
+            whoami = await researcher.exec("whoami")
+            step1 = f"whoami: {whoami.stdout.strip()} (exit {whoami.exit_code})"
 
-        # Commit
-        await researcher.exec("cd /home/agent/repo && git add -A")
-        commit_msg = shlex.quote(f"test: {description}")
-        await researcher.exec(
-            f"cd /home/agent/repo && git diff --cached --quiet || git commit -m {commit_msg}",
-        )
+            # Step 2: check Modal
+            modal_check = await researcher.exec("cd /home/agent/repo && uv run modal token info 2>&1")
+            step2 = f"modal token: exit {modal_check.exit_code}, output: {(modal_check.stdout or '')[:100]}"
 
-        # Run on Modal
-        result = await researcher.exec(
-            f"cd /home/agent/repo && uv run modal run --env {MODAL_ENV} run_modal.py 2>&1",
-            timeout=900,
-        )
+            # Step 3: git branch
+            await researcher.exec("cd /home/agent/repo && git checkout -b test/pipeline-check 2>&1 || true")
+            await researcher.exec("cd /home/agent/repo && git add -A")
+            commit_msg = shlex.quote(f"test: {description}")
+            await researcher.exec(f"cd /home/agent/repo && git diff --cached --quiet || git commit -m {commit_msg}")
 
-        output = result.stdout or ""
-        exit_code = result.exit_code
-        metrics = _parse_metrics(output)
-        bpb = metrics.get("val_bpb")
-        vram_gb = round(metrics.get("peak_vram_mb", 0) / 1024, 1)
+            branch = await researcher.exec("cd /home/agent/repo && git branch --show-current")
+            step3 = f"branch: {branch.stdout.strip()}"
 
-        if bpb is not None and bpb < best_bpb:
-            best_bpb = bpb
+            # Step 4: run Modal
+            result = await researcher.exec(
+                f"cd /home/agent/repo && uv run modal run --env {MODAL_ENV} run_modal.py 2>&1",
+                timeout=900,
+            )
+            output = result.stdout or ""
+            metrics = _parse_metrics(output)
+            step4 = f"modal exit: {result.exit_code}, val_bpb: {metrics.get('val_bpb', 'N/A')}, last 5 lines: {chr(10).join(output.strip().split(chr(10))[-5:])}"
 
-        # Get commit hash
-        hash_result = await researcher.exec("cd /home/agent/repo && git rev-parse --short HEAD")
-        commit_hash = (hash_result.stdout or "").strip()
+            # Step 5: try git push
+            push = await researcher.exec("cd /home/agent/repo && git push -u origin HEAD 2>&1")
+            step5 = f"push exit: {push.exit_code}, output: {(push.stdout or push.stderr or '')[:200]}"
 
-        # Determine status
-        if exit_code != 0 or bpb is None:
-            status = "crash"
-        else:
-            status = "keep"
+            summary = f"""=== PIPELINE TEST ===
+{step1}
+{step2}
+{step3}
+{step4}
+{step5}
+=== END ==="""
+            ctx.done(summary)
+            return summary
 
-        # Try git push
-        push_result = await researcher.exec("cd /home/agent/repo && git push -u origin HEAD 2>&1")
-        push_ok = push_result.exit_code == 0
-
-        summary = [
-            f"=== PIPELINE TEST RESULTS ===",
-            f"Exit code: {exit_code}",
-            f"Status: {status}",
-            f"val_bpb: {bpb}",
-            f"peak_vram: {vram_gb} GB",
-            f"commit: {commit_hash}",
-            f"git push: {'OK' if push_ok else 'FAILED'}",
-            f"push output: {(push_result.stdout or '')[:200]}",
-        ]
-        if status == "crash":
-            summary.append(f"Last 20 lines:\n{''.join(output.strip().split(chr(10))[-20:])}")
-
-        result_text = "\n".join(summary)
-        ctx.done(result_text)
-        return result_text
+        except Exception as e:
+            error_msg = f"TOOL ERROR: {e}\n{traceback.format_exc()}"
+            ctx.done(error_msg)
+            return error_msg
