@@ -16,6 +16,24 @@ from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evalua
 # Model
 # ---------------------------------------------------------------------------
 
+def precompute_rope_freqs(head_dim, max_seq_len, theta=10000.0):
+    freqs = 1.0 / (theta ** (torch.arange(0, head_dim, 2).float() / head_dim))
+    t = torch.arange(max_seq_len).float()
+    freqs = torch.outer(t, freqs)
+    return torch.cos(freqs), torch.sin(freqs)
+
+
+def apply_rope(x, cos, sin):
+    # x: (B, n_head, T, head_dim)
+    x1 = x[..., 0::2]
+    x2 = x[..., 1::2]
+    cos = cos[:x.shape[2]].unsqueeze(0).unsqueeze(0)  # (1, 1, T, head_dim//2)
+    sin = sin[:x.shape[2]].unsqueeze(0).unsqueeze(0)
+    out1 = x1 * cos - x2 * sin
+    out2 = x1 * sin + x2 * cos
+    return torch.stack((out1, out2), dim=-1).flatten(-2)
+
+
 class CausalSelfAttention(nn.Module):
     def __init__(self, n_embd, n_head):
         super().__init__()
@@ -24,11 +42,13 @@ class CausalSelfAttention(nn.Module):
         self.qkv = nn.Linear(n_embd, 3 * n_embd, bias=False)
         self.proj = nn.Linear(n_embd, n_embd, bias=False)
 
-    def forward(self, x):
+    def forward(self, x, rope_cos, rope_sin):
         B, T, C = x.shape
         qkv = self.qkv(x).reshape(B, T, 3, self.n_head, self.head_dim)
         q, k, v = qkv.unbind(2)
         q, k, v = q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2)
+        q = apply_rope(q, rope_cos, rope_sin)
+        k = apply_rope(k, rope_cos, rope_sin)
         y = F.scaled_dot_product_attention(q, k, v, is_causal=True)
         y = y.transpose(1, 2).contiguous().reshape(B, T, C)
         return self.proj(y)
@@ -46,8 +66,8 @@ class Block(nn.Module):
             nn.Linear(4 * n_embd, n_embd),
         )
 
-    def forward(self, x):
-        x = x + self.attn(self.ln1(x))
+    def forward(self, x, rope_cos, rope_sin):
+        x = x + self.attn(self.ln1(x), rope_cos, rope_sin)
         x = x + self.mlp(self.ln2(x))
         return x
 
@@ -56,17 +76,19 @@ class GPT(nn.Module):
     def __init__(self, vocab_size, n_embd=512, n_head=8, n_layer=6):
         super().__init__()
         self.tok_emb = nn.Embedding(vocab_size, n_embd)
-        self.pos_emb = nn.Embedding(MAX_SEQ_LEN, n_embd)
         self.blocks = nn.ModuleList([Block(n_embd, n_head) for _ in range(n_layer)])
         self.ln_f = nn.LayerNorm(n_embd)
         self.lm_head = nn.Linear(n_embd, vocab_size, bias=False)
-        self.lm_head.weight = self.tok_emb.weight
+        head_dim = n_embd // n_head
+        rope_cos, rope_sin = precompute_rope_freqs(head_dim, MAX_SEQ_LEN)
+        self.register_buffer('rope_cos', rope_cos)
+        self.register_buffer('rope_sin', rope_sin)
 
     def forward(self, idx, targets=None, reduction='mean'):
         B, T = idx.shape
-        x = self.tok_emb(idx) + self.pos_emb(torch.arange(T, device=idx.device))
+        x = self.tok_emb(idx)
         for block in self.blocks:
-            x = block(x)
+            x = block(x, self.rope_cos, self.rope_sin)
         x = self.ln_f(x)
         logits = self.lm_head(x)
 
@@ -83,9 +105,9 @@ class GPT(nn.Module):
 # Hyperparameters
 # ---------------------------------------------------------------------------
 
-N_EMBD = 512
+N_EMBD = 448
 N_HEAD = 8
-N_LAYER = 6
+N_LAYER = 8
 BATCH_SIZE = 64
 LR = 6e-3
 MIN_LR = 6e-4
