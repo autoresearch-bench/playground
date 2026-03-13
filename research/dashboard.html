@@ -8,6 +8,7 @@ body { font-family: system-ui, sans-serif; max-width: 900px; margin: 40px auto; 
 h1 { color: #1a1a2e; border-bottom: 3px solid #e94560; padding-bottom: 10px; }
 h2 { color: #16213e; margin-top: 30px; }
 .metric { font-size: 2em; font-weight: bold; color: #e94560; }
+.metric-improved { font-size: 2em; font-weight: bold; color: #27ae60; }
 .card { background: white; border-radius: 8px; padding: 20px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 table { width: 100%; border-collapse: collapse; margin: 10px 0; }
 th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; }
@@ -24,46 +25,51 @@ th { background: #f0f0f0; font-weight: 600; }
 
 <div class="card">
 <h2>Current Best</h2>
-<p class="metric pending">Awaiting baseline...</p>
-<p>No experiments completed yet.</p>
+<p class="metric">val_bpb = 1.794518 (baseline)</p>
+<p>28.3M params | 512d/8h/6L | AdamW LR=3e-4 | batch=64</p>
 </div>
 
 <div class="card">
 <h2>Budget</h2>
 <div class="status-bar">
 <div class="status-item"><strong>Total:</strong> 4.0 GPU-hours</div>
-<div class="status-item"><strong>Used:</strong> 0.0 GPU-hours</div>
-<div class="status-item"><strong>Remaining:</strong> 4.0 GPU-hours (~48 runs)</div>
+<div class="status-item"><strong>Used:</strong> ~0.08 GPU-hours (baseline)</div>
+<div class="status-item"><strong>Remaining:</strong> ~3.9 GPU-hours (~47 runs)</div>
 </div>
 </div>
 
 <div class="card">
 <h2>Experiment Log</h2>
 <table>
-<tr><th>#</th><th>Branch</th><th>Change</th><th>val_bpb</th><th>Status</th></tr>
-<tr><td colspan="5" class="pending">Baseline run pending...</td></tr>
+<tr><th>#</th><th>Branch</th><th>Change</th><th>val_bpb</th><th>Delta</th><th>Status</th></tr>
+<tr><td>0</td><td>baseline</td><td>Original train.py (512d/8h/6L, AdamW 3e-4, batch 64)</td><td>1.794518</td><td>-</td><td>BASELINE</td></tr>
 </table>
+</div>
+
+<div class="card">
+<h2>Key Findings</h2>
+<ul>
+<li>H100 only 31% utilized (25/80GB VRAM) - huge room for larger model/batch</li>
+<li>~155ms/step without torch.compile - significant optimization headroom</li>
+<li>~1930 training steps in 5 minutes at current config</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Active Experiments</h2>
+<p class="pending">Spawning assistants for first batch...</p>
+<p>Priority experiments: torch.compile, larger model, architecture improvements</p>
 </div>
 
 <div class="card">
 <h2>Research Plan</h2>
 <ol>
-<li><strong>Phase 1:</strong> Establish baseline (in progress)</li>
-<li><strong>Phase 2:</strong> Low-hanging fruit: torch.compile, grad clipping, LR schedule fix, weight decay</li>
-<li><strong>Phase 3:</strong> Architecture: larger model, SwiGLU, RMSNorm</li>
-<li><strong>Phase 4:</strong> Training: higher LR, larger batch, alternative optimizers</li>
-<li><strong>Phase 5:</strong> Combine winners</li>
+<li><strong>Phase 1:</strong> Establish baseline - DONE (1.794518)</li>
+<li><strong>Phase 2:</strong> Low-hanging fruit: compile + larger model + grad clip</li>
+<li><strong>Phase 3:</strong> Architecture: SwiGLU, RMSNorm, weight tying</li>
+<li><strong>Phase 4:</strong> Training: higher LR, WD, schedule tuning</li>
+<li><strong>Phase 5:</strong> Combine all winners</li>
 </ol>
-</div>
-
-<div class="card">
-<h2>Key Observations</h2>
-<ul>
-<li>Baseline: 512d/8h/6L GPT, ~30M params, AdamW 3e-4, batch 64</li>
-<li>H100 likely heavily underutilized with current config</li>
-<li>torch.compile should give significant speedup = more training steps</li>
-<li>LR schedule is applied after optimizer step (minor inefficiency)</li>
-</ul>
 </div>
 </body>
 </html>

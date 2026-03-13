@@ -1,30 +1,44 @@
 # Research Plan
 
-## Phase 1: Establish Baseline
-- Run train.py as-is to get baseline val_bpb
-- Record VRAM usage and training throughput
+## Baseline Established
+- val_bpb: 1.794518
+- 28.3M params, 512d/8h/6L, ~155ms/step, 25GB VRAM
 
-## Phase 2: Low-hanging Fruit (parallel experiments)
-1. **torch.compile** - Add `model = torch.compile(model)` for free speedup
-2. **Gradient clipping** - Add `torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)`
-3. **Fix LR schedule** - Move LR update before optimizer.step()
-4. **Weight decay 0.1** - Increase from default 0.01
+## Phase 2: First Batch (parallel experiments)
 
-## Phase 3: Architecture Improvements
-5. **Larger model** - Increase n_embd=768, n_head=12, n_layer=8 (if compile gives enough speedup)
-6. **SwiGLU activation** - Replace GELU MLP with SwiGLU for better quality
-7. **RMSNorm** - Replace LayerNorm with RMSNorm (faster + modern)
+### Exp 1: torch.compile + gradient clipping
+- Add `model = torch.compile(model)`
+- Add `torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)`
+- Hypothesis: compile gives ~1.5x speedup, more steps = better convergence
 
-## Phase 4: Training Improvements
-8. **Higher learning rate** - Try 1e-3 or 6e-4
-9. **Larger batch size** - Try 128 or 256 with gradient accumulation
-10. **Muon optimizer** - Alternative to AdamW
+### Exp 2: Larger model (768d/12h/8L)
+- Increase dimensions significantly, ~90M params
+- Hypothesis: more capacity with H100 headroom should help
 
-## Phase 5: Combine Winners
-- Stack all improvements that showed gains
-- Fine-tune combined configuration
+### Exp 3: Compile + bigger model + modern arch (SwiGLU + RMSNorm)
+- Combine: torch.compile, 768d/12h/8L, SwiGLU activation, RMSNorm
+- Higher LR (6e-4) with grad clip and weight decay 0.1
+- Hypothesis: modern best-practices combo should beat baseline substantially
+
+### Exp 4: Higher LR + weight decay + grad clip (keep same model size)
+- LR 1e-3, weight decay 0.1, grad clip 1.0
+- Hypothesis: training hyperparameters may be more impactful than model size at fixed time
+
+## Phase 3: React to Phase 2 results
+- If compile helps: use it as base for all future experiments
+- If larger model helps: explore even larger or different depth/width ratios
+- If architecture helps: try more modern improvements (rotary embeddings, etc.)
+- Stack winning changes
+
+## Phase 4: Advanced improvements
+- Muon optimizer
+- Rotary positional embeddings (RoPE)
+- QK normalization
+- Learning rate schedule tuning (warmup length, min LR)
+- Token/parameter efficiency optimizations
 
 ## Budget Strategy
-- 4.0 GPU-hours = ~48 five-minute runs
-- Use 2 assistants in parallel for throughput
-- Prioritize changes most likely to help: compile, model size, architecture
+- 4.0 GPU-hours total, ~0.08 used for baseline
+- Each run costs ~0.083 GPU-hours (5 min)
+- Can do ~47 more runs
+- Use 2 parallel assistants for throughput
