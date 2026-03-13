@@ -41,35 +41,36 @@
 <div class="grid">
   <div class="card">
     <div class="label">Best val_bpb</div>
-    <div class="value">--</div>
+    <div class="value best">1.2231</div>
   </div>
   <div class="card">
     <div class="label">Current Phase</div>
-    <div class="value">1</div>
+    <div class="value">1 &rarr; 2</div>
   </div>
   <div class="card">
     <div class="label">Experiments Run</div>
-    <div class="value">0</div>
+    <div class="value">10</div>
   </div>
   <div class="card">
     <div class="label">Budget Used</div>
-    <div class="value">0.0h</div>
+    <div class="value">0.83h</div>
   </div>
 </div>
 
 <h2>Phases</h2>
-<div class="phase active">
+<div class="phase done">
   <div class="phase-header">
     <span class="phase-name">Phase 1: Training Dynamics</span>
-    <span class="badge current">ACTIVE</span>
+    <span class="badge done">DONE</span>
   </div>
-  <p style="color: #8b949e; font-size: 13px; margin-top: 4px;">LR, optimizer, schedule, batch, clip, weight decay</p>
+  <p style="color: #8b949e; font-size: 13px; margin-top: 4px;">Best: LR=6e-3, clip=1.0, wd=0.1, betas=(0.9,0.95), min_lr=6e-4 &rarr; 1.2231</p>
 </div>
-<div class="phase">
+<div class="phase active">
   <div class="phase-header">
     <span class="phase-name">Phase 2: Architecture</span>
-    <span class="badge pending">PENDING</span>
+    <span class="badge current">NEXT</span>
   </div>
+  <p style="color: #8b949e; font-size: 13px; margin-top: 4px;">Weight tying, SwiGLU, RMSNorm, RoPE, depth/width</p>
 </div>
 <div class="phase">
   <div class="phase-header">
@@ -84,13 +85,22 @@
   </div>
 </div>
 
-<h2>Phase 1: Training Dynamics</h2>
+<h2>Phase 1: Training Dynamics (10 experiments)</h2>
 <table>
   <thead>
     <tr><th>#</th><th>Description</th><th>Key Changes</th><th>val_bpb</th><th>vs Baseline</th></tr>
   </thead>
-  <tbody id="phase1-results">
-    <tr><td colspan="5" style="color: #8b949e; text-align: center;">Awaiting results...</td></tr>
+  <tbody>
+    <tr><td>1</td><td>Baseline</td><td>LR=3e-4, no clip, default</td><td>1.7876</td><td>--</td></tr>
+    <tr><td>2</td><td>High LR + stability</td><td>LR=3e-3, clip=1.0, wd=0.1, betas=(0.9,0.95)</td><td>1.2632</td><td class="improved">-29.3%</td></tr>
+    <tr><td>3</td><td>Higher LR</td><td>LR=5e-3, same stability</td><td>1.2411</td><td class="improved">-30.6%</td></tr>
+    <tr><td>4</td><td>torch.compile</td><td>LR=3e-3 + compile</td><td>1.2828</td><td class="improved">-28.2%</td></tr>
+    <tr><td>5</td><td>LR=8e-3</td><td>Too aggressive</td><td>1.2546</td><td class="improved">-29.8%</td></tr>
+    <tr><td>6</td><td>Batch=128</td><td>LR=5e-3, batch=128</td><td>1.3051</td><td class="improved">-27.0%</td></tr>
+    <tr class="best-row"><td>7</td><td>LR=6e-3</td><td>LR=6e-3, clip=1.0, wd=0.1, min_lr=6e-4</td><td><strong>1.2231</strong></td><td class="improved"><strong>-31.6%</strong></td></tr>
+    <tr><td>8</td><td>Batch=32</td><td>LR=5e-3, batch=32</td><td>1.2278</td><td class="improved">-31.3%</td></tr>
+    <tr><td>9</td><td>LR=7e-3</td><td>Diverged at step 1450</td><td>1.5866</td><td class="worse">-11.2%</td></tr>
+    <tr><td>10</td><td>Batch=32 + LR=6e-3</td><td>LR too high for small batch</td><td>1.3240</td><td class="improved">-25.9%</td></tr>
   </tbody>
 </table>
 
@@ -100,7 +110,7 @@
     <tr><th>#</th><th>Description</th><th>Key Changes</th><th>val_bpb</th><th>vs Phase 1 Best</th></tr>
   </thead>
   <tbody>
-    <tr><td colspan="5" style="color: #8b949e; text-align: center;">Not started</td></tr>
+    <tr><td colspan="5" style="color: #8b949e; text-align: center;">Awaiting results...</td></tr>
   </tbody>
 </table>
 
