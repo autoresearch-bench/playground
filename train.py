@@ -103,6 +103,7 @@ vocab_size = tokenizer.get_vocab_size()
 print(f"Vocab size: {vocab_size}")
 
 model = GPT(vocab_size, n_embd=N_EMBD, n_head=N_HEAD, n_layer=N_LAYER).to(device)
+model = torch.compile(model)
 
 num_params = sum(p.numel() for p in model.parameters())
 print(f"Parameters: {num_params / 1e6:.1f}M")
@@ -125,6 +126,7 @@ while True:
         loss = model(x, y)
     optimizer.zero_grad()
     loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
     optimizer.step()
 
     # LR schedule: linear warmup then cosine decay
