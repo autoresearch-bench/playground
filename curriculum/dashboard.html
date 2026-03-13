@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ML Research Dashboard</title>
 <style>
-  :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9; --accent: #58a6ff; --green: #3fb950; --yellow: #d29922; --red: #f85149; }
+  :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9; --accent: #58a6ff; --green: #3fb950; --red: #f85149; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
-  h1 { color: var(--accent); margin-bottom: 8px; font-size: 24px; }
-  h2 { color: var(--accent); margin: 24px 0 12px; font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+  h1 { color: var(--accent); margin-bottom: 8px; }
+  h2 { color: var(--accent); margin: 24px 0 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
   .subtitle { color: #8b949e; margin-bottom: 20px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
@@ -41,36 +41,35 @@
 <div class="grid">
   <div class="card">
     <div class="label">Best val_bpb</div>
-    <div class="value best">1.2512</div>
+    <div class="value best">-- pending --</div>
   </div>
   <div class="card">
     <div class="label">Current Phase</div>
-    <div class="value">2</div>
+    <div class="value">1</div>
   </div>
   <div class="card">
     <div class="label">Experiments Run</div>
-    <div class="value">2</div>
+    <div class="value">0</div>
   </div>
   <div class="card">
     <div class="label">Budget Used</div>
-    <div class="value">0.92h</div>
+    <div class="value">0.00h</div>
   </div>
 </div>
 
 <h2>Phases</h2>
-<div class="phase done">
-  <div class="phase-header">
-    <span class="phase-name">Phase 1: Training Dynamics</span>
-    <span class="badge done">DONE</span>
-  </div>
-  <p style="color: #8b949e; font-size: 13px; margin-top: 4px;">Best: LR=3e-3, grad_clip=1.0, wd=0.1, betas=(0.9, 0.95), min_lr=3e-4 &rarr; val_bpb=1.2512</p>
-</div>
 <div class="phase active">
   <div class="phase-header">
-    <span class="phase-name">Phase 2: Architecture</span>
+    <span class="phase-name">Phase 1: Training Dynamics</span>
     <span class="badge current">ACTIVE</span>
   </div>
-  <p style="color: #8b949e; font-size: 13px; margin-top: 4px;">Exploring architecture changes with Phase 1 best training config locked</p>
+  <p style="color: #8b949e; font-size: 13px; margin-top: 4px;">Exploring LR, optimizer, schedule, batch size, gradient clipping</p>
+</div>
+<div class="phase">
+  <div class="phase-header">
+    <span class="phase-name">Phase 2: Architecture</span>
+    <span class="badge pending">PENDING</span>
+  </div>
 </div>
 <div class="phase">
   <div class="phase-header">
@@ -90,21 +89,8 @@
   <thead>
     <tr><th>#</th><th>Description</th><th>Key Changes</th><th>val_bpb</th><th>vs Baseline</th></tr>
   </thead>
-  <tbody>
-    <tr>
-      <td>1</td>
-      <td>Baseline</td>
-      <td>LR=3e-4, no clip, default betas</td>
-      <td>1.7937</td>
-      <td>--</td>
-    </tr>
-    <tr class="best-row">
-      <td>2</td>
-      <td>High LR + stability</td>
-      <td>LR=3e-3, clip=1.0, wd=0.1, betas=(0.9,0.95), min_lr=3e-4</td>
-      <td>1.2512</td>
-      <td class="improved">-0.5425 (-30.2%)</td>
-    </tr>
+  <tbody id="phase1-results">
+    <tr><td colspan="5" style="color: #8b949e; text-align: center;">Awaiting baseline...</td></tr>
   </tbody>
 </table>
 
@@ -113,8 +99,8 @@
   <thead>
     <tr><th>#</th><th>Description</th><th>Key Changes</th><th>val_bpb</th><th>vs Best</th></tr>
   </thead>
-  <tbody id="phase2-results">
-    <tr><td colspan="5" style="color: #8b949e; text-align: center;">Awaiting results...</td></tr>
+  <tbody>
+    <tr><td colspan="5" style="color: #8b949e; text-align: center;">Not started</td></tr>
   </tbody>
 </table>
 
@@ -123,7 +109,7 @@
   <thead>
     <tr><th>#</th><th>Description</th><th>Key Changes</th><th>val_bpb</th><th>vs Best</th></tr>
   </thead>
-  <tbody id="phase3-results">
+  <tbody>
     <tr><td colspan="5" style="color: #8b949e; text-align: center;">Not started</td></tr>
   </tbody>
 </table>
@@ -133,7 +119,7 @@
   <thead>
     <tr><th>#</th><th>Description</th><th>Key Changes</th><th>val_bpb</th><th>vs Best</th></tr>
   </thead>
-  <tbody id="phase4-results">
+  <tbody>
     <tr><td colspan="5" style="color: #8b949e; text-align: center;">Not started</td></tr>
   </tbody>
 </table>
