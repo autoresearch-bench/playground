@@ -105,9 +105,9 @@ class GPT(nn.Module):
 # Hyperparameters
 # ---------------------------------------------------------------------------
 
-N_EMBD = 448
-N_HEAD = 8
-N_LAYER = 8
+N_EMBD = 384
+N_HEAD = 6
+N_LAYER = 10
 BATCH_SIZE = 64
 LR = 6e-3
 MIN_LR = 6e-4
