@@ -25,16 +25,16 @@ th { background: #f0f0f0; font-weight: 600; }
 
 <div class="card">
 <h2>Current Best</h2>
-<p class="metric">val_bpb = 1.794518 (baseline)</p>
-<p>28.3M params | 512d/8h/6L | AdamW LR=3e-4 | batch=64</p>
+<p class="metric-improved">val_bpb = 1.498154 (-16.5% from baseline)</p>
+<p>28.7M params | 512d/8h/6L | SwiGLU + RMSNorm | torch.compile | AdamW LR=6e-4, WD=0.1 | grad clip 1.0</p>
 </div>
 
 <div class="card">
 <h2>Budget</h2>
 <div class="status-bar">
 <div class="status-item"><strong>Total:</strong> 4.0 GPU-hours</div>
-<div class="status-item"><strong>Used:</strong> ~0.08 GPU-hours (baseline)</div>
-<div class="status-item"><strong>Remaining:</strong> ~3.9 GPU-hours (~47 runs)</div>
+<div class="status-item"><strong>Used:</strong> ~0.3 GPU-hours</div>
+<div class="status-item"><strong>Remaining:</strong> ~3.7 GPU-hours (~44 runs)</div>
 </div>
 </div>
 
@@ -42,33 +42,41 @@ th { background: #f0f0f0; font-weight: 600; }
 <h2>Experiment Log</h2>
 <table>
 <tr><th>#</th><th>Branch</th><th>Change</th><th>val_bpb</th><th>Delta</th><th>Status</th></tr>
-<tr><td>0</td><td>baseline</td><td>Original train.py (512d/8h/6L, AdamW 3e-4, batch 64)</td><td>1.794518</td><td>-</td><td>BASELINE</td></tr>
+<tr><td>0</td><td>baseline</td><td>Original (512d/8h/6L, AdamW 3e-4, batch 64, no compile)</td><td>1.794518</td><td>-</td><td>BASELINE</td></tr>
+<tr><td>1</td><td>exp/modern-arch</td><td>SwiGLU+RMSNorm+compile+LR6e-4+WD0.1</td><td class="improved">1.498154</td><td class="improved">-0.296</td><td class="improved">MERGED</td></tr>
+<tr><td>2</td><td>exp/larger-768d</td><td>768d/12h/8L (~90M params)</td><td colspan="2" class="pending">Running...</td><td class="pending">PENDING</td></tr>
+<tr><td>3</td><td>exp/lr1e3-weighttie</td><td>LR 1e-3 + weight tying</td><td colspan="2" class="pending">Running...</td><td class="pending">PENDING</td></tr>
 </table>
 </div>
 
 <div class="card">
 <h2>Key Findings</h2>
 <ul>
-<li>H100 only 31% utilized (25/80GB VRAM) - huge room for larger model/batch</li>
-<li>~155ms/step without torch.compile - significant optimization headroom</li>
-<li>~1930 training steps in 5 minutes at current config</li>
+<li><strong>SwiGLU + RMSNorm = massive win:</strong> 16.5% improvement over baseline with similar param count</li>
+<li><strong>torch.compile:</strong> reduced step time from 155ms to ~120ms (22% faster), VRAM from 25GB to 17GB</li>
+<li><strong>Higher LR (6e-4) + weight decay (0.1):</strong> both contributed to improvement</li>
+<li><strong>H100 still underutilized:</strong> 17GB out of 80GB - room for much larger model</li>
+<li>Training is smooth with grad clipping at 1.0</li>
 </ul>
 </div>
 
 <div class="card">
 <h2>Active Experiments</h2>
-<p class="pending">Spawning assistants for first batch...</p>
-<p>Priority experiments: torch.compile, larger model, architecture improvements</p>
+<p>2 experiments running in parallel:</p>
+<ul>
+<li><strong>exp/larger-768d:</strong> Scale to 768d/12h/8L (~90M params) - testing if more capacity helps</li>
+<li><strong>exp/lr1e3-weighttie:</strong> LR 1e-3 + weight tying - testing faster convergence + param efficiency</li>
+</ul>
 </div>
 
 <div class="card">
 <h2>Research Plan</h2>
 <ol>
-<li><strong>Phase 1:</strong> Establish baseline - DONE (1.794518)</li>
-<li><strong>Phase 2:</strong> Low-hanging fruit: compile + larger model + grad clip</li>
-<li><strong>Phase 3:</strong> Architecture: SwiGLU, RMSNorm, weight tying</li>
-<li><strong>Phase 4:</strong> Training: higher LR, WD, schedule tuning</li>
-<li><strong>Phase 5:</strong> Combine all winners</li>
+<li><s>Phase 1: Establish baseline (1.794518)</s></li>
+<li><s>Phase 2: Modern architecture improvements (1.498154)</s></li>
+<li><strong>Phase 3 (active):</strong> Scale up model + hyperparameter tuning</li>
+<li>Phase 4: Advanced (Muon optimizer, RoPE, QK norm, etc.)</li>
+<li>Phase 5: Final combination of all winners</li>
 </ol>
 </div>
 </body>
