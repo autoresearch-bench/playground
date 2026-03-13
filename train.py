@@ -34,17 +34,26 @@ class CausalSelfAttention(nn.Module):
         return self.proj(y)
 
 
+class SwiGLU(nn.Module):
+    def __init__(self, n_embd):
+        super().__init__()
+        hidden = int(8 / 3 * n_embd)
+        hidden = hidden - (hidden % 64)  # round to multiple of 64
+        self.gate = nn.Linear(n_embd, hidden, bias=False)
+        self.up = nn.Linear(n_embd, hidden, bias=False)
+        self.down = nn.Linear(hidden, n_embd, bias=False)
+
+    def forward(self, x):
+        return self.down(F.silu(self.gate(x)) * self.up(x))
+
+
 class Block(nn.Module):
     def __init__(self, n_embd, n_head):
         super().__init__()
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
         self.attn = CausalSelfAttention(n_embd, n_head)
-        self.mlp = nn.Sequential(
-            nn.Linear(n_embd, 4 * n_embd),
-            nn.GELU(),
-            nn.Linear(4 * n_embd, n_embd),
-        )
+        self.mlp = SwiGLU(n_embd)
 
     def forward(self, x):
         x = x + self.attn(self.ln1(x))
@@ -86,9 +95,9 @@ N_EMBD = 512
 N_HEAD = 8
 N_LAYER = 6
 BATCH_SIZE = 64
-LR = 3e-3
-MIN_LR = 3e-4
-WARMUP_STEPS = 100
+LR = 5e-3
+MIN_LR = 5e-4
+WARMUP_STEPS = 200
 GRAD_CLIP = 1.0
 
 # ---------------------------------------------------------------------------
@@ -108,6 +117,8 @@ model = GPT(vocab_size, n_embd=N_EMBD, n_head=N_HEAD, n_layer=N_LAYER).to(device
 
 num_params = sum(p.numel() for p in model.parameters())
 print(f"Parameters: {num_params / 1e6:.1f}M")
+
+model = torch.compile(model)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=0.1, betas=(0.9, 0.95))
 train_loader = make_dataloader(tokenizer, BATCH_SIZE, MAX_SEQ_LEN, "train")
