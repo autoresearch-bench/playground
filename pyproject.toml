@@ -1,5 +1,5 @@
 [project]
-name = "autoresearch-template"
+name = "autoresearch-playground"
 version = "0.1.0"
 description = "From-scratch autonomous pretraining research"
 readme = "README.md"

@@ -2,7 +2,7 @@
 
 import modal
 
-app = modal.App("autoresearch-template")
+app = modal.App("autoresearch-playground")
 
 # Shared data volume — pre-load once, all research orgs read from it
 data_volume = modal.Volume.from_name("autoresearch-data", create_if_missing=True)
