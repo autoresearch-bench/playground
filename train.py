@@ -37,8 +37,7 @@ class CausalSelfAttention(nn.Module):
 class SwiGLU(nn.Module):
     def __init__(self, n_embd):
         super().__init__()
-        hidden = int(8 / 3 * n_embd)
-        hidden = hidden - (hidden % 64)  # round to multiple of 64
+        hidden = ((int(8 / 3 * n_embd) + 63) // 64) * 64  # round up to multiple of 64
         self.gate = nn.Linear(n_embd, hidden, bias=False)
         self.up = nn.Linear(n_embd, hidden, bias=False)
         self.down = nn.Linear(hidden, n_embd, bias=False)
@@ -117,8 +116,6 @@ model = GPT(vocab_size, n_embd=N_EMBD, n_head=N_HEAD, n_layer=N_LAYER).to(device
 
 num_params = sum(p.numel() for p in model.parameters())
 print(f"Parameters: {num_params / 1e6:.1f}M")
-
-model = torch.compile(model)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=0.1, betas=(0.9, 0.95))
 train_loader = make_dataloader(tokenizer, BATCH_SIZE, MAX_SEQ_LEN, "train")
