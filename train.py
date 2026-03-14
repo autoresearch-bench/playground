@@ -109,9 +109,9 @@ N_EMBD = 384
 N_HEAD = 6
 N_LAYER = 10
 BATCH_SIZE = 64
-LR = 5e-3
-MIN_LR = 5e-4
-WARMUP_STEPS = 100
+LR = 6e-3
+MIN_LR = 6e-4
+WARMUP_STEPS = 200
 GRAD_CLIP = 1.0
 
 # ---------------------------------------------------------------------------
